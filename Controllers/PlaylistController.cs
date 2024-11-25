@@ -1,52 +1,55 @@
-﻿using PlayStreamAPI.Data;
-using PlayStreamAPI.Models;
+﻿using PlayStreamAPI.Models;
+using PlayStreamAPI.Repositories;
+using Microsoft.AspNetCore.Mvc;
 
 namespace PlayStreamAPI.Controllers
 {
-    public class PlaylistRepository
+    [Route("api/[controller]")]
+    [ApiController]
+    public class PlaylistController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly PlaylistRepository _playlistRepository;
 
-        public PlaylistRepository(ApplicationDbContext context)
+        public PlaylistController(PlaylistRepository playlistRepository)
         {
-            _context = context;
+            _playlistRepository = playlistRepository;
         }
 
-        public async Task<List<Playlist>> GetAllPlaylistsAsync()
+        // GET: api/playlist
+        [HttpGet]
+        public async Task<ActionResult<IEnumerable<Playlist>>> GetAllPlaylists()
         {
-            return await _context.Playlists
-                .Include(p => p.Usuario) 
-                .ToListAsync();
+            var playlists = await _playlistRepository.GetAllPlaylistsAsync();
+            return Ok(playlists);
         }
 
-        public async Task<Playlist> GetPlaylistByIdAsync(int id)
+        // POST: api/playlist
+        [HttpPost]
+        public async Task<ActionResult<Playlist>> CreatePlaylist([FromBody] Playlist playlist)
         {
-            return await _context.Playlists
-                .Include(p => p.Usuario)
-                .FirstOrDefaultAsync(p => p.Id == id);
+            await _playlistRepository.AddPlaylistAsync(playlist);
+            return CreatedAtAction(nameof(GetAllPlaylists), new { id = playlist.Id }, playlist);
         }
 
-        public async Task AddPlaylistAsync(Playlist playlist)
+        // PUT: api/playlist/5
+        [HttpPut("{id}")]
+        public async Task<IActionResult> UpdatePlaylist(int id, [FromBody] Playlist playlist)
         {
-            await _context.Playlists.AddAsync(playlist);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task UpdatePlaylistAsync(Playlist playlist)
-        {
-            _context.Playlists.Update(playlist);
-            await _context.SaveChangesAsync();
-        }
-
-        public async Task DeletePlaylistAsync(int id)
-        {
-            var playlist = await _context.Playlists.FindAsync(id);
-            if (playlist != null)
+            if (id != playlist.Id)
             {
-                _context.Playlists.Remove(playlist);
-                await _context.SaveChangesAsync();
+                return BadRequest();
             }
+
+            await _playlistRepository.UpdatePlaylistAsync(playlist);
+            return NoContent();
+        }
+
+        // DELETE: api/playlist/5
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> DeletePlaylist(int id)
+        {
+            await _playlistRepository.DeletePlaylistAsync(id);
+            return NoContent();
         }
     }
-
 }
