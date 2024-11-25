@@ -1,0 +1,12 @@
+{
+  "Version": 1,
+  "Hash": "04bqw07LOqrdqsIntAQZahAuP64lbDJ4eHPghELlLOY=",
+  "Source": "PlayStreamAPI",
+  "BasePath": "_content/PlayStreamAPI",
+  "Mode": "Default",
+  "ManifestType": "Build",
+  "ReferencedProjectsConfiguration": [],
+  "DiscoveryPatterns": [],
+  "Assets": [],
+  "Endpoints": []
+}
