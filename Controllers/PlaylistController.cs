@@ -1,55 +1,60 @@
-﻿using PlayStreamAPI.Models;
+﻿using Microsoft.AspNetCore.Mvc;
+using PlayStreamAPI.Models;
 using PlayStreamAPI.Repositories;
-using Microsoft.AspNetCore.Mvc;
+using System.Collections.Generic;
+using System.Threading.Tasks;
 
-namespace PlayStreamAPI.Controllers
+[ApiController]
+[Route("api/[controller]")]
+public class PlaylistController : ControllerBase
 {
-    [Route("api/[controller]")]
-    [ApiController]
-    public class PlaylistController : ControllerBase
+    private readonly PlaylistRepository _playlistRepository;
+
+    // Construtor com injeção de dependência
+    public PlaylistController(PlaylistRepository playlistRepository)
     {
-        private readonly PlaylistRepository _playlistRepository;
+        _playlistRepository = playlistRepository;
+    }
 
-        public PlaylistController(PlaylistRepository playlistRepository)
-        {
-            _playlistRepository = playlistRepository;
-        }
+    // Método POST para criar uma nova playlist
+    [HttpPost]
+    public async Task<IActionResult> CreatePlaylist([FromBody] Playlist playlist)
+    {
+        var createdPlaylist = await _playlistRepository.CreatePlaylistAsync(playlist);
+        return CreatedAtAction(nameof(GetPlaylistById), new { id = createdPlaylist.Id }, createdPlaylist);
+    }
 
-        // GET: api/playlist
-        [HttpGet]
-        public async Task<ActionResult<IEnumerable<Playlist>>> GetAllPlaylists()
-        {
-            var playlists = await _playlistRepository.GetAllPlaylistsAsync();
-            return Ok(playlists);
-        }
+    // Método GET para obter todas as playlists
+    [HttpGet]
+    public async Task<ActionResult<List<Playlist>>> GetAllPlaylists()
+    {
+        var playlists = await _playlistRepository.GetAllPlaylistsAsync();
+        return Ok(playlists);
+    }
 
-        // POST: api/playlist
-        [HttpPost]
-        public async Task<ActionResult<Playlist>> CreatePlaylist([FromBody] Playlist playlist)
-        {
-            await _playlistRepository.AddPlaylistAsync(playlist);
-            return CreatedAtAction(nameof(GetAllPlaylists), new { id = playlist.Id }, playlist);
-        }
+    // Método GET para obter uma playlist pelo ID
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Playlist>> GetPlaylistById(int id)
+    {
+        var playlist = await _playlistRepository.GetPlaylistByIdAsync(id);
+        if (playlist == null)
+            return NotFound();
+        return Ok(playlist);
+    }
 
-        // PUT: api/playlist/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> UpdatePlaylist(int id, [FromBody] Playlist playlist)
-        {
-            if (id != playlist.Id)
-            {
-                return BadRequest();
-            }
+    // Método POST para adicionar conteúdo a uma playlist
+    [HttpPost("{playlistId}/conteudo/{conteudoId}")]
+    public async Task<IActionResult> AddConteudoToPlaylist(int playlistId, int conteudoId)
+    {
+        await _playlistRepository.AddConteudoToPlaylistAsync(playlistId, conteudoId);
+        return NoContent();
+    }
 
-            await _playlistRepository.UpdatePlaylistAsync(playlist);
-            return NoContent();
-        }
-
-        // DELETE: api/playlist/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> DeletePlaylist(int id)
-        {
-            await _playlistRepository.DeletePlaylistAsync(id);
-            return NoContent();
-        }
+    // Método DELETE para remover conteúdo de uma playlist
+    [HttpDelete("{playlistId}/conteudo/{conteudoId}")]
+    public async Task<IActionResult> RemoveConteudoFromPlaylist(int playlistId, int conteudoId)
+    {
+        await _playlistRepository.RemoveConteudoFromPlaylistAsync(playlistId, conteudoId);
+        return NoContent();
     }
 }

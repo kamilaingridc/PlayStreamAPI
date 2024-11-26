@@ -1,12 +1,10 @@
-﻿namespace PlayStreamAPI.Models
+﻿using PlayStreamAPI.Models;
+
+public class ItemPlaylist
 {
-    public class ItemPlaylist
-    {
-        public int PlaylistId { get; set; }
-        public Playlist Playlist { get; set; }
+    public int PlaylistId { get; set; }  
+    public int ConteudoId { get; set; }   
 
-        public int ConteudoId { get; set; }
-        public Conteudo Conteudo { get; set; }
-    }
-
+    public Playlist Playlist { get; set; } = new Playlist();
+    public Conteudo Conteudo { get; set; } = new Conteudo();
 }

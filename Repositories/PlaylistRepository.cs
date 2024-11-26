@@ -1,63 +1,89 @@
-﻿
-    using PlayStreamAPI.Models;
-    using Microsoft.EntityFrameworkCore;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Threading.Tasks;
-    using global::PlayStreamAPI.Data;
+﻿using Microsoft.EntityFrameworkCore;
+using PlayStreamAPI.Models;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
-    namespace PlayStreamAPI.Repositories
+namespace PlayStreamAPI.Repositories
+{
+    public class PlaylistRepository
     {
-        public class PlaylistRepository
+        private readonly ApplicationDbContext _context;
+
+        public PlaylistRepository(ApplicationDbContext context)
         {
-            private readonly ApplicationDbContext _context;
+            _context = context;
+        }
 
-            // Construtor que recebe o contexto do banco de dados
-            public PlaylistRepository(ApplicationDbContext context)
-            {
-                _context = context;
-            }
+        // Criar uma nova playlist
+        public async Task<Playlist> CreatePlaylistAsync(Playlist playlist)
+        {
+            _context.Playlists.Add(playlist);
+            await _context.SaveChangesAsync();
+            return playlist;
+        }
 
-            // Método para pegar todas as playlists
-            public async Task<List<Playlist>> GetAllPlaylistsAsync()
-            {
-                return await _context.Playlist
-                    .Include(p => p.Usuario)  // Inclui o usuário associado à playlist
-                    .ToListAsync();
-            }
+        // Obter todas as playlists
+        public async Task<List<Playlist>> GetAllPlaylistsAsync()
+        {
+            return await _context.Playlists.Include(p => p.Usuario)
+                                           .Include(p => p.ItensPlaylist)
+                                           .ThenInclude(ip => ip.Conteudo)
+                                           .ToListAsync();
+        }
 
-            // Método para pegar uma playlist por ID
-            public async Task<Playlist> GetPlaylistByIdAsync(int id)
-            {
-                return await _context.Playlist
-                    .Include(p => p.Usuario)
-                    .FirstOrDefaultAsync(p => p.Id == id);
-            }
+        // Obter uma playlist pelo ID
+        public async Task<Playlist> GetPlaylistByIdAsync(int id)
+        {
+            return await _context.Playlists.Include(p => p.Usuario)
+                                           .Include(p => p.ItensPlaylist)
+                                           .ThenInclude(ip => ip.Conteudo)
+                                           .FirstOrDefaultAsync(p => p.Id == id);
+        }
 
-            // Método para adicionar uma nova playlist
-            public async Task AddPlaylistAsync(Playlist playlist)
+        // Atualizar uma playlist
+        public async Task<Playlist> UpdatePlaylistAsync(Playlist playlist)
+        {
+            _context.Playlists.Update(playlist);
+            await _context.SaveChangesAsync();
+            return playlist;
+        }
+
+        // Deletar uma playlist
+        public async Task<bool> DeletePlaylistAsync(int id)
+        {
+            var playlist = await _context.Playlists.FindAsync(id);
+            if (playlist == null)
+                return false;
+
+            _context.Playlists.Remove(playlist);
+            await _context.SaveChangesAsync();
+            return true;
+        }
+
+        // Adicionar conteúdo à playlist
+        public async Task AddConteudoToPlaylistAsync(int playlistId, int conteudoId)
+        {
+            var itemPlaylist = new ItemPlaylist
             {
-                await _context.Playlist.AddAsync(playlist);
+                PlaylistId = playlistId,
+                ConteudoId = conteudoId
+            };
+
+            _context.ItensPlaylist.Add(itemPlaylist);
+            await _context.SaveChangesAsync();
+        }
+
+        // Remover conteúdo da playlist
+        public async Task RemoveConteudoFromPlaylistAsync(int playlistId, int conteudoId)
+        {
+            var itemPlaylist = await _context.ItensPlaylist
+                                              .FirstOrDefaultAsync(ip => ip.PlaylistId == playlistId && ip.ConteudoId == conteudoId);
+            if (itemPlaylist != null)
+            {
+                _context.ItensPlaylist.Remove(itemPlaylist);
                 await _context.SaveChangesAsync();
-            }
-
-            // Método para atualizar uma playlist existente
-            public async Task UpdatePlaylistAsync(Playlist playlist)
-            {
-                _context.Playlist.Update(playlist);
-                await _context.SaveChangesAsync();
-            }
-
-            // Método para excluir uma playlist
-            public async Task DeletePlaylistAsync(int id)
-            {
-                var playlist = await _context.Playlist.FindAsync(id);
-                if (playlist != null)
-                {
-                    _context.Playlist.Remove(playlist);
-                    await _context.SaveChangesAsync();
-                }
             }
         }
     }
-            
+}
