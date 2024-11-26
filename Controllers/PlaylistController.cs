@@ -1,8 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using PlayStreamAPI.Models;
 using PlayStreamAPI.Repositories;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 
 [ApiController]
 [Route("api/[controller]")]
@@ -20,6 +18,9 @@ public class PlaylistController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreatePlaylist([FromBody] Playlist playlist)
     {
+        if (playlist == null)
+            return BadRequest("Playlist não pode ser nula.");
+
         var createdPlaylist = await _playlistRepository.CreatePlaylistAsync(playlist);
         return CreatedAtAction(nameof(GetPlaylistById), new { id = createdPlaylist.Id }, createdPlaylist);
     }
@@ -38,15 +39,42 @@ public class PlaylistController : ControllerBase
     {
         var playlist = await _playlistRepository.GetPlaylistByIdAsync(id);
         if (playlist == null)
-            return NotFound();
+            return NotFound("Playlist não encontrada.");
         return Ok(playlist);
+    }
+
+    // Método PUT para atualizar uma playlist
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdatePlaylist(int id, [FromBody] Playlist playlist)
+    {
+        if (id != playlist.Id)
+            return BadRequest("ID da playlist não corresponde.");
+
+        var updatedPlaylist = await _playlistRepository.UpdatePlaylistAsync(playlist);
+        if (updatedPlaylist == null)
+            return NotFound("Playlist não encontrada para atualização.");
+
+        return Ok(updatedPlaylist);
+    }
+
+    // Método DELETE para excluir uma playlist
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeletePlaylist(int id)
+    {
+        var deleted = await _playlistRepository.DeletePlaylistAsync(id);
+        if (!deleted)
+            return NotFound("Playlist não encontrada para exclusão.");
+
+        return NoContent();
     }
 
     // Método POST para adicionar conteúdo a uma playlist
     [HttpPost("{playlistId}/conteudo/{conteudoId}")]
     public async Task<IActionResult> AddConteudoToPlaylist(int playlistId, int conteudoId)
     {
-        await _playlistRepository.AddConteudoToPlaylistAsync(playlistId, conteudoId);
+        var result = await _playlistRepository.AddConteudoToPlaylistAsync(playlistId, conteudoId);
+        if (!result)
+            return NotFound("Playlist ou conteúdo não encontrado.");
         return NoContent();
     }
 
@@ -54,7 +82,10 @@ public class PlaylistController : ControllerBase
     [HttpDelete("{playlistId}/conteudo/{conteudoId}")]
     public async Task<IActionResult> RemoveConteudoFromPlaylist(int playlistId, int conteudoId)
     {
-        await _playlistRepository.RemoveConteudoFromPlaylistAsync(playlistId, conteudoId);
+        var result = await _playlistRepository.RemoveConteudoFromPlaylistAsync(playlistId, conteudoId);
+        if (!result)
+            return NotFound("Playlist ou conteúdo não encontrado.");
+
         return NoContent();
     }
 }

@@ -44,9 +44,14 @@ namespace PlayStreamAPI.Repositories
         // Atualizar uma playlist
         public async Task<Playlist> UpdatePlaylistAsync(Playlist playlist)
         {
-            _context.Playlists.Update(playlist);
+            // Verifica se a playlist existe
+            var existingPlaylist = await _context.Playlists.FindAsync(playlist.Id);
+            if (existingPlaylist == null)
+                return null;  // Retorna null caso a playlist não exista
+
+            _context.Entry(existingPlaylist).CurrentValues.SetValues(playlist);
             await _context.SaveChangesAsync();
-            return playlist;
+            return existingPlaylist;
         }
 
         // Deletar uma playlist
@@ -54,7 +59,7 @@ namespace PlayStreamAPI.Repositories
         {
             var playlist = await _context.Playlists.FindAsync(id);
             if (playlist == null)
-                return false;
+                return false;  // Retorna false se a playlist não for encontrada
 
             _context.Playlists.Remove(playlist);
             await _context.SaveChangesAsync();
@@ -62,8 +67,15 @@ namespace PlayStreamAPI.Repositories
         }
 
         // Adicionar conteúdo à playlist
-        public async Task AddConteudoToPlaylistAsync(int playlistId, int conteudoId)
+        public async Task<bool> AddConteudoToPlaylistAsync(int playlistId, int conteudoId)
         {
+            // Verifica se a playlist e conteúdo existem
+            var playlist = await _context.Playlists.FindAsync(playlistId);
+            var conteudo = await _context.Conteudos.FindAsync(conteudoId);
+
+            if (playlist == null || conteudo == null)
+                return false;  // Retorna false se a playlist ou conteúdo não forem encontrados
+
             var itemPlaylist = new ItemPlaylist
             {
                 PlaylistId = playlistId,
@@ -72,18 +84,21 @@ namespace PlayStreamAPI.Repositories
 
             _context.ItensPlaylist.Add(itemPlaylist);
             await _context.SaveChangesAsync();
+            return true;  // Retorna true após adicionar o conteúdo à playlist
         }
 
         // Remover conteúdo da playlist
-        public async Task RemoveConteudoFromPlaylistAsync(int playlistId, int conteudoId)
+        public async Task<bool> RemoveConteudoFromPlaylistAsync(int playlistId, int conteudoId)
         {
             var itemPlaylist = await _context.ItensPlaylist
                                               .FirstOrDefaultAsync(ip => ip.PlaylistId == playlistId && ip.ConteudoId == conteudoId);
-            if (itemPlaylist != null)
-            {
-                _context.ItensPlaylist.Remove(itemPlaylist);
-                await _context.SaveChangesAsync();
-            }
+
+            if (itemPlaylist == null)
+                return false;  // Retorna false se o item não for encontrado
+
+            _context.ItensPlaylist.Remove(itemPlaylist);
+            await _context.SaveChangesAsync();
+            return true;  // Retorna true após remover o conteúdo
         }
     }
 }
